@@ -10,10 +10,18 @@ fi
 
 BASE_URL="https://radar.tuxcare.com/external"
 
+response=$(curl -s -H "x-api-key: $API_KEY" "$BASE_URL/assets")
+
+# check if response is an error
+if echo "$response" | jq -e 'type == "object" and .detail == "Invalid API key"' > /dev/null; then
+  echo "Error: Invalid API key."
+  exit 1
+fi
+
 # csv header
 echo "Asset ID,Hostname,IP,OS,Last Analyzed,Risk Score,Critical,High,Medium"
 
-curl -s -H "x-api-key: $API_KEY" "$BASE_URL/assets" | jq -c '.[]' | while read -r asset; do
+echo "$response" | jq -c '.[]' | while read -r asset; do
     id=$(echo "$asset" | jq -r '.id')
     hostname=$(echo "$asset" | jq -r '.hostname')
     ip=$(echo "$asset" | jq -r '.ip')
