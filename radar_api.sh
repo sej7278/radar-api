@@ -36,10 +36,25 @@ echo "$response" | jq -c '.[]' | while read -r asset; do
     medium=$(echo "$detail" | jq -r '.severity_medium // 0')
 
     if [[ "$critical" -eq 0 && "$high" -eq 0 && "$medium" -eq 0 ]]; then
-        vulns=$(curl -s -H "x-api-key: $API_KEY" "$BASE_URL/assets/$id/vulnerabilities")
-        critical=$(echo "$vulns" | jq '[.[] | select(.severity=="critical")] | length')
-        high=$(echo "$vulns" | jq '[.[] | select(.severity=="high")] | length')
-        medium=$(echo "$vulns" | jq '[.[] | select(.severity=="medium")] | length')
+        vulns=$(curl -s --compressed -H "x-api-key: $API_KEY" "$BASE_URL/assets/$id/vulnerabilities")
+        counts=$(echo "$vulns" | jq -r '
+          def all:
+            if type == "array" then .
+            elif type == "object" then
+              ( ((.scan // []) | map(.vulnerabilities) | add? // []) )
+              + ( ((.scans // []) | map(.vulnerabilities) | add? // []) )
+              + ( .items // [] )
+              + ( .vulnerabilities // [] )
+              + ( (.vulnerabilities?.items) // [] )
+            else [] end;
+          def sevcount(name):
+            [ all[]? | (.severity? // .severity_name? // .cvss?.severity? // "") | ascii_downcase | select(.==name) ] | length;
+          def agg(name):
+            .counts?[name] // .severity_counts?[name] // .vulnerabilities_counts?[name] // 0;
+          (sevcount("critical") as $c | sevcount("high") as $h | sevcount("medium") as $m |
+            if ($c+$h+$m) > 0 then [$c,$h,$m] else [agg("critical"), agg("high"), agg("medium")] end
+          ) | @tsv')
+        IFS=$'\t' read -r critical high medium <<< "$counts"
     fi
 
     echo "$id,$hostname,$ip,$os,$last_analyzed,$risk_score,$critical,$high,$medium"
