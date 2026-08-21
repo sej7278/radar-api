@@ -59,12 +59,6 @@ func vulnsByAsset(id string, apikey string) (err error) {
 		return err
 	}
 
-	// extract the scan details
-	var scan map[string]any
-	if s, ok := assetDetails["scan"].(map[string]any); ok {
-		scan = s
-	}
-
 	// pretty print the asset details
 	fmt.Printf("Asset ID:\t%v\n", assetDetails["id"])
 	fmt.Printf("Host:\t\t%v (%v)\n", assetDetails["hostname"], assetDetails["ip"])
@@ -76,7 +70,7 @@ func vulnsByAsset(id string, apikey string) (err error) {
 	fmt.Printf("Last scan:\t%v\n", lastUploaded.Local().Format(time.RFC1123))
 
 	// pretty print the vulnerabilities
-	fmt.Printf("Vulns:\t\t🟣=%v, 🔴=%v, 🟠=%v, 🟢=%v\n\n", scan["severity_critical"], scan["severity_high"], scan["severity_medium"], scan["severity_low"])
+	fmt.Printf("Vulns:\t\t🟣=%v, 🔴=%v, 🟠=%v, 🟢=%v\n\n", assetDetails["severity_critical"], assetDetails["severity_high"], assetDetails["severity_medium"], assetDetails["severity_low"])
 
 	// return nil if no errors
 	return nil
