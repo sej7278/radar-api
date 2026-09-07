@@ -1,6 +1,6 @@
 # TuxCare Radar API Demos
 
-A series of scripts that demonstrate how to use the [Radar API](https://radar.tuxcare.com/external/docs#/)
+A series of scripts that demonstrate how to use the [Radar API](https://radar.tuxcare.com/external/docs/)
 
 ## Setting up credentials
 
@@ -28,17 +28,17 @@ Example output:
 ```text
 Asset ID:       23132
 Host:           ubuntu16 (192.168.0.90)
-OS:             ubuntu 16.04 (4.4.0-272-tuxcare.els43-generic)
-Radar version:  1.3.0-1
-Last scan:      Thu, 03 Apr 2025 11:41:14 BST
-Vulns:          C=11, H=36, M=32, L=4m
+OS:             ubuntu 16.04 (4.4.0-285-generic)
+Radar version:  1.6.3-1
+Last scan:      Fri, 04 Sep 2026 13:00:02 BST
+Vulns:          🟣=5, 🔴=17, 🟠=59, 🟢=31
 
 Asset ID:       23202
 Host:           debian11 (192.168.0.75)
-OS:             debian 11 (5.10.0-34-amd64)
-Radar version:  1.4.0-beta1
-Last scan:      Wed, 02 Apr 2025 16:31:39 BST
-Vulns:          C=0, H=0, M=0, L=0m
+OS:             debian 11 (5.10.0-46-amd64)
+Radar version:  1.6.2-1
+Last scan:      Mon, 17 Aug 2026 12:08:41 BST
+Vulns:          🟣=0, 🔴=0, 🟠=0, 🟢=0
 ```
 
 ### Installing a binary

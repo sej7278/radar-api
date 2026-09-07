@@ -38,73 +38,63 @@ func makeRequest(url string, apikey string, bodyReader io.Reader) (res *http.Res
 	return res, nil
 }
 
-func vulnsByAsset(id string, apikey string) (err error) {
-	// make http request
-	res, err := makeRequest("/assets/"+id, apikey, nil)
-	if err != nil {
-		return err
-	}
-
-	// read the response
-	defer res.Body.Close()
-	resBody, err := io.ReadAll(res.Body)
-	if err != nil {
-		return err
-	}
-
-	// unmarshal the response
-	var assetDetails map[string]any
-	err = json.Unmarshal(resBody, &assetDetails)
-	if err != nil {
-		return err
-	}
-
-	// pretty print the asset details
-	fmt.Printf("Asset ID:\t%v\n", assetDetails["id"])
-	fmt.Printf("Host:\t\t%v (%v)\n", assetDetails["hostname"], assetDetails["ip"])
-	fmt.Printf("OS:\t\t%v %v (%v)\n", assetDetails["os"], assetDetails["os_release"], assetDetails["kernel_release"])
-	fmt.Printf("Radar version:\t%v\n", assetDetails["last_inspector_version"])
-
-	// format the timestamp
-	lastUploaded, _ := time.Parse(time.RFC3339, assetDetails["last_uploaded"].(string))
-	fmt.Printf("Last scan:\t%v\n", lastUploaded.Local().Format(time.RFC1123))
-
-	// pretty print the vulnerabilities
-	fmt.Printf("Vulns:\t\t🟣=%v, 🔴=%v, 🟠=%v, 🟢=%v\n\n", assetDetails["severity_critical"], assetDetails["severity_high"], assetDetails["severity_medium"], assetDetails["severity_low"])
-
-	// return nil if no errors
-	return nil
-}
-
-func listAssets(apikey string) (ids []string, err error) {
+func assetVulns(apikey string) (err error) {
 	// make http request
 	res, err := makeRequest("/assets", apikey, nil)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// read the response
 	defer res.Body.Close()
 	resBody, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// unmarshal the response
 	var response []any
 	err = json.Unmarshal(resBody, &response)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	// loop through assets and extract ids
+	// loop through the assets
 	for _, asset := range response {
-		id := fmt.Sprintf("%.0f", asset.(map[string]any)["id"].(float64))
-		ids = append(ids, id)
+		assetDetails, ok := asset.(map[string]any)
+		if !ok {
+			return fmt.Errorf("invalid asset response")
+		}
+
+		if _, ok := assetDetails["id"].(float64); !ok {
+			return fmt.Errorf("asset response is missing a valid id")
+		}
+
+		assetInfo := assetDetails
+
+		// pretty print the asset details
+		fmt.Printf("Asset ID:\t%v\n", assetInfo["id"])
+		fmt.Printf("Host:\t\t%v (%v)\n", assetInfo["hostname"], assetInfo["ip"])
+		fmt.Printf("OS:\t\t%v %v (%v)\n", assetInfo["os"], assetInfo["os_release"], assetInfo["kernel_release"])
+		fmt.Printf("Radar version:\t%v\n", assetInfo["last_inspector_version"])
+
+		// format the timestamp
+		if lastUploadedStr, ok := assetInfo["last_uploaded"].(string); ok {
+			if lastUploaded, err := time.Parse(time.RFC3339, lastUploadedStr); err == nil {
+				fmt.Printf("Last scan:\t%v\n", lastUploaded.Local().Format(time.RFC1123))
+			}
+		}
+
+		// pretty print the vulnerabilities
+		vulnerabilities, ok := assetInfo["vulnerabilities"].(map[string]any)
+		if !ok {
+			return fmt.Errorf("asset response is missing vulnerabilities")
+		}
+		fmt.Printf("Vulns:\t\t🟣=%v, 🔴=%v, 🟠=%v, 🟢=%v\n\n", vulnerabilities["severity_critical"], vulnerabilities["severity_high"], vulnerabilities["severity_medium"], vulnerabilities["severity_low"])
 	}
 
-	// return the list of ids
-	return ids, nil
+	// return nil if no errors
+	return nil
 }
 
 func readConfig() (apikey string, err error) {
@@ -142,17 +132,9 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// fetch a list of asset ids
-	ids, err := listAssets(apikey)
+	// fetch assets and vulns
+	err = assetVulns(apikey)
 	if err != nil {
 		log.Fatal(err)
-	}
-
-	// fetch vulns for each id
-	for _, id := range ids {
-		err = vulnsByAsset(id, apikey)
-		if err != nil {
-			log.Fatal(err)
-		}
 	}
 }
